@@ -66,6 +66,7 @@ dependencies {
     debugImplementation "androidx.compose.ui:ui-tooling:1.3.3"
 }
 
+// rustup target add aarch64-linux-android armv7-linux-androideabi
 // add the following
 def rustBasePath = "../rust_lib"
 def archTriplets = [
