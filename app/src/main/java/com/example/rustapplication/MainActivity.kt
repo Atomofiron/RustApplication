@@ -80,10 +80,10 @@ fun Homepage() {
                     showError = true
                     return@Button
                 }
-                val inputs = Inputs(first, second)
-                addition = "${inputs.addition()}"
-                subtraction = "${inputs.subtraction()}"
-                multiplication = "${inputs.multiplication()}"
+                val inputs = Inputs("/sdcard/")
+                addition = inputs.mode()
+                subtraction = "${inputs.owner()} ${inputs.ownerId()}"
+                multiplication = "${inputs.group()} ${inputs.groupId()}"
                 showError = false
             }) {
                 Text(text = "=")

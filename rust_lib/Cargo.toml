@@ -15,6 +15,9 @@ jni-sys = "*"
 log = "*"
 log-panics="*"
 android_logger = "*"
+file-mode = "0.1.2"
+file-owner = "0.1.1"
+nix = "0.26.1"
 
 [build-dependencies]
 rifgen = "0.1.51"

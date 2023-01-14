@@ -4,10 +4,12 @@ use jni_sys::*;
 foreign_class!(
 	class Inputs {
 		self_type Inputs;
-		constructor Inputs::new(first : i64 , second : i64)->Inputs;
-		fn Inputs::addition(& self)->i64; alias addition;
-		fn Inputs::subtraction(& self)->i64; alias subtraction;
-		fn Inputs::multiplication(& self)->i64; alias multiplication;
+		constructor Inputs::new(argument : String)->Inputs;
+		fn Inputs::mode(& self)->String; alias mode;
+		fn Inputs::owner(& self)->String; alias owner;
+		fn Inputs::owner_id(& self)->u32; alias ownerId;
+		fn Inputs::group_id(& self)->u32; alias groupId;
+		fn Inputs::group(& self)->String; alias group;
 	}
 );
 foreign_class!(
