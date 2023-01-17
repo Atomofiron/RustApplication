@@ -31,7 +31,6 @@ impl RustLog {
                 .with_tag("Rust"),
         );
         //log_panics::init();
-        log::info!("Logging initialised from Rust");
         log::error!("Logging initialised from Rust");
     }
 }
@@ -71,7 +70,7 @@ impl Inputs {
     #[generate_interface]
     pub fn group(&self) -> String {
         let path = Path::new(&self.argument);
-        //Inputs::loggg("group 0");
+        log::error!("group 0");
         let group = path.group();
         log::error!("group 1");
         log::error!("group is_ok {}", group.is_ok());
@@ -85,11 +84,12 @@ impl Inputs {
                     log::error!("group from_anything...");
                     unsafe { libc::getgrgid_r(id, grp, cbuf, cap, res) }
                 });
-                String::from("[ok]")
+                result.unwrap().unwrap().name
+                //String::from("[ok]")
             }
             Err(e) => String::from("[err2]")
         }
-        /*match group {
+        /*match path.group() {
             Ok(value) => match value.name() {
                 Ok(v) => match v {
                     Some(it) => it,
@@ -133,29 +133,9 @@ impl Inputs {
                 } else {
                     log::error!("from_anything loop 4");
                     let grp = unsafe { grp.assume_init() };
-                    log::error!("from_anything loop 5");
-                    log::error!("from_anything loop 6 {}", grp.gr_gid);
-                    log::error!("from_anything loop 7 {}", grp.gr_passwd.is_null());
-                    unsafe {
-                        log::error!("from_anything unsafe 00");
-                        let name = CStr::from_ptr(grp.gr_name).to_string_lossy().into_owned();
-                        log::error!("from_anything unsafe 1");
-                        let pass = CStr::from_ptr(grp.gr_passwd);
-                        log::error!("from_anything unsafe 2");
-                        let passw = pass.to_bytes();
-                        log::error!("from_anything unsafe 3");
-                        let passwd = CString::new(passw);
-                        log::error!("from_anything unsafe 4");
-                        let passwd1 = passwd.unwrap();
-                        log::error!("from_anything unsafe 5");
-                        let passwd2 = passwd1.to_string_lossy().to_string();
-                        log::error!("from_anything unsafe 6");
-                        let gid = Gid::from_raw(grp.gr_gid);
-                        log::error!("from_anything unsafe 7");
-                        //let mem = NixGroup::members(gr.gr_mem);
-                        log::error!("from_anything unsafe 8 {} {} {}", name, passwd2, gid);
-                    }
-                    return Ok(Some(NixGroup::from(&grp)));
+                    log::error!("from_anything loop 5 {}", grp.gr_passwd.is_null());
+                    let group = Inputs::from(&grp);
+                    return Ok(Some(group));
                 }
             } else if Errno::last() == Errno::ERANGE {
                 log::error!("from_anything loop 2");
@@ -178,5 +158,37 @@ impl Inputs {
         buf.reserve(capacity);
 
         Ok(())
+    }
+
+    fn from(gr: &libc::group) -> NixGroup {
+        unsafe {
+            let passwd = if gr.gr_passwd.is_null() {
+                CString::new("").unwrap()
+            } else {
+                CString::new(CStr::from_ptr(gr.gr_passwd).to_bytes()).unwrap()
+            };
+            NixGroup {
+                name: CStr::from_ptr(gr.gr_name).to_string_lossy().into_owned(),
+                passwd,
+                gid: Gid::from_raw(gr.gr_gid),
+                mem: Inputs::members(gr.gr_mem)
+            }
+        }
+    }
+
+    unsafe fn members(mem: *mut *mut c_char) -> Vec<String> {
+        let mut ret = Vec::new();
+
+        for i in 0.. {
+            let u = mem.offset(i);
+            if (*u).is_null() {
+                break;
+            } else {
+                let s = CStr::from_ptr(*u).to_string_lossy().into_owned();
+                ret.push(s);
+            }
+        }
+
+        ret
     }
 }

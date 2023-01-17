@@ -2,6 +2,11 @@
 use crate::*;
 use jni_sys::*;
 foreign_class!(
+	class RustLog {
+		fn RustLog::initialise_logging(); alias initialiseLogging;
+	}
+);
+foreign_class!(
 	class Inputs {
 		self_type Inputs;
 		constructor Inputs::new(argument : String)->Inputs;
@@ -10,10 +15,5 @@ foreign_class!(
 		fn Inputs::owner_id(& self)->u32; alias ownerId;
 		fn Inputs::group_id(& self)->u32; alias groupId;
 		fn Inputs::group(& self)->String; alias group;
-	}
-);
-foreign_class!(
-	class RustLog {
-		fn RustLog::initialise_logging(); alias initialiseLogging;
 	}
 );

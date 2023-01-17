@@ -80,7 +80,7 @@ fun Homepage() {
                     showError = true
                     return@Button
                 }
-                val inputs = Inputs("/sdcard/")
+                val inputs = Inputs("/sdcard/DCIM/")
                 addition = inputs.mode()
                 subtraction = "${inputs.owner()} ${inputs.ownerId()}"
                 multiplication = "${inputs.group()} ${inputs.groupId()}"
