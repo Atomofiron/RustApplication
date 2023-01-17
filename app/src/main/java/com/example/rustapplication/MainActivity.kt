@@ -1,6 +1,8 @@
 package com.example.rustapplication
 
+import android.R
 import android.os.Bundle
+import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
@@ -11,16 +13,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.example.rustapplication.lib.Inputs
-import com.example.rustapplication.lib.RustLog
 import com.example.rustapplication.ui.theme.RustApplicationTheme
+
 
 class MainActivity : ComponentActivity() {
 
     companion object {
         init {
             System.loadLibrary("rust_lib")
-            RustLog.initialiseLogging()
         }
     }
 
@@ -80,10 +80,11 @@ fun Homepage() {
                     showError = true
                     return@Button
                 }
-                val inputs = Inputs(first, second)
-                addition = "${inputs.addition()}"
-                subtraction = "${inputs.subtraction()}"
-                multiplication = "${inputs.multiplication()}"
+                val g = RustGreetings()
+                val r = g.sayHello("world")
+                addition = "addition"
+                subtraction = "subtraction"
+                multiplication = "RustGreetings $r"
                 showError = false
             }) {
                 Text(text = "=")

@@ -1,51 +1,36 @@
-mod java_glue;
+use std::os::raw::{c_char};
+use std::ffi::{CString, CStr};
 
-pub use crate::java_glue::*;
+#[no_mangle]
+pub extern fn rust_greeting(to: *const c_char) -> *mut c_char {
+    let c_str = unsafe { CStr::from_ptr(to) };
+    let recipient = match c_str.to_str() {
+        Err(_) => "there",
+        Ok(string) => string,
+    };
 
-use android_logger::Config;
-use log::Level;
-use rifgen::rifgen_attr::*;
-
-pub struct RustLog;
-
-impl RustLog {
-    //set up logging
-    #[generate_interface]
-    pub fn initialise_logging() {
-        #[cfg(target_os = "android")]
-            android_logger::init_once(
-            Config::default()
-                .with_min_level(Level::Trace)
-                .with_tag("Rust"),
-        );
-        log_panics::init();
-        log::info!("Logging initialised from Rust");
-    }
+    CString::new("Hello ".to_owned() + recipient).unwrap().into_raw()
 }
 
-pub struct Inputs {
-    first: i64,
-    second: i64,
-}
+/// Expose the JNI interface for android below
+//#[cfg(target_os="android")]
+#[allow(non_snake_case)]
+pub mod android {
+    extern crate jni;
 
-impl Inputs {
-    #[generate_interface(constructor)]
-    pub fn new(first: i64, second: i64) -> Inputs {
-        Self {
-            first,
-            second,
-        }
-    }
-    #[generate_interface]
-    pub fn addition(&self) -> i64 {
-        self.first + self.second
-    }
-    #[generate_interface]
-    pub fn subtraction(&self) -> i64 {
-        self.first - self.second
-    }
-    #[generate_interface]
-    pub fn multiplication(&self) -> i64 {
-        self.first * self.second
+    use super::*;
+    use self::jni::JNIEnv;
+    use self::jni::objects::{JClass, JString};
+    use self::jni::sys::{jstring};
+
+    #[no_mangle]
+    pub unsafe extern fn Java_com_example_rustapplication_RustGreetings_greeting(env: JNIEnv, _: JClass, java_pattern: JString) -> jstring {
+        // Our Java companion code might pass-in "world" as a string, hence the name.
+        let world = rust_greeting(env.get_string(java_pattern).expect("invalid pattern string").as_ptr());
+        // Retake pointer so that we can use it below and allow memory to be freed when it goes out of scope.
+        let world_ptr = CString::from_raw(world);
+        let output = env.new_string(world_ptr.to_str().unwrap()).expect("Couldn't create java string!");
+
+        output.into_raw()
     }
 }
