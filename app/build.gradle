@@ -5,6 +5,7 @@ plugins {
 
 android {
     compileSdk 33
+    ndkVersion "21.4.7075529"
 
     defaultConfig {
         applicationId "com.example.rustapplication"
@@ -67,13 +68,74 @@ dependencies {
 }
 
 // rustup target add aarch64-linux-android armv7-linux-androideabi
-// add the following
 def rustBasePath = "../rust_lib"
 def archTriplets = [
         'armeabi-v7a': 'armv7-linux-androideabi',
         'arm64-v8a': 'aarch64-linux-android',
 ]
+import org.gradle.internal.os.OperatingSystem
+OperatingSystem os = OperatingSystem.current()
+String host
+if (os.familyName == "linux") {
+    host = "linux-x86_64"
+} else if (os.familyName == "os x") {
+    host = "darwin-x86_64"
+} else if (os.familyName == "windows") {
+    host = "windows-x86_64"
+} else {
+    throw IllegalStateException("Unknown OS (${os.familyName})")
+}
+def ndkApi = 28
+def ndkLlvmBin = "${android.ndkDirectory.path}/toolchains/llvm/prebuilt/$host/bin/"
 
-archTriplets.each {
-    // todo add build tasks for rust_lib (including config.toml)
+// arm ar's prefix starts with 'arm', not 'armv7'
+// arm linker's prefix starts with 'armv7a', not 'armv7'
+def libConfigDir = "$projectDir/$rustBasePath/.cargo/"
+new File(libConfigDir).mkdirs()
+new File("$libConfigDir/config.toml").write("""
+# DONT EDIT! Genereted by $projectDir/build.gradle
+
+[target.aarch64-linux-android]
+ar = \"${ndkLlvmBin}aarch64-linux-android-ar\"
+linker = \"${ndkLlvmBin}aarch64-linux-android$ndkApi-clang\"
+
+[target.armv7-linux-androideabi]
+ar = \"${ndkLlvmBin}arm-linux-androideabi-ar\"
+linker = \"${ndkLlvmBin}armv7a-linux-androideabi$ndkApi-clang\"
+""")
+
+archTriplets.each { arch, target ->
+    project.ext.cargo_target_directory = rustBasePath + "/target"
+    // Build with cargo
+    tasks.create(name: "cargo-build-${arch}", type: Exec, description: "Building core for ${arch}") {
+        workingDir rustBasePath
+        commandLine 'cargo', 'build', "--target=${target}", '--release'
+    }
+    // Sync shared native dependencies
+    tasks.create(name: "sync-rust-deps-${arch}", type: Sync, dependsOn: "cargo-build-${arch}") {
+        from "${rustBasePath}/src/libs/${arch}"
+        include "*.so"
+        into "src/main/libs/${arch}"
+    }
+    // Copy build libs into this app's libs directory
+    tasks.create(name: "rust-deploy-${arch}", type: Copy, dependsOn: "sync-rust-deps-${arch}", description: "Copy rust libs for (${arch}) to jniLibs") {
+        from "${project.ext.cargo_target_directory}/${target}/release"
+        include "*.so"
+        into "src/main/libs/${arch}"
+    }
+
+    // Hook up tasks to execute before building java
+    tasks.withType(JavaCompile) {
+        compileTask -> compileTask.dependsOn "rust-deploy-${arch}"
+    }
+    preBuild.dependsOn "rust-deploy-${arch}"
+
+    // Hook up clean tasks
+    tasks.create(name: "clean-${arch}", type: Delete, description: "Deleting built libs for ${arch}", dependsOn: "cargo-output-dir-${arch}") {
+        delete fileTree("${project.ext.cargo_target_directory}/${target}/release") {
+            include '*.so'
+        }
+    }
+
+    clean.dependsOn "clean-${arch}"
 }
