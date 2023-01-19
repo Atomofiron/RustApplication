@@ -13,4 +13,4 @@
 .externalNativeBuild
 .cxx
 local.properties
-rust_lib/.cargo/
+.idea
